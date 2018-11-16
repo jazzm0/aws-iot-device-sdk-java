@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
-public class EnergyConsumer {
+public class EnergyConsumer extends GenericPayload {
 
     @JsonProperty
     private final String id;
@@ -14,14 +14,12 @@ public class EnergyConsumer {
     private final Integer maxCapacity;
     @JsonProperty
     private final Integer chargingPower;
-    @JsonProperty
-    private final Instant timestamp;
 
     public EnergyConsumer(String id, Integer capacity, Integer maxCapacity, Integer chargingPower, Instant timestamp) {
+        super(timestamp);
         this.id = id;
         this.capacity = capacity;
         this.maxCapacity = maxCapacity;
         this.chargingPower = chargingPower;
-        this.timestamp = timestamp;
     }
 }

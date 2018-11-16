@@ -1,25 +1,9 @@
-/*
- * Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 package com.amazonaws.services.iot.client.sample.pubSub;
 
 import com.amazonaws.services.iot.client.AWSIotMqttClient;
 import com.amazonaws.services.iot.client.AWSIotException;
 import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotQos;
-import com.amazonaws.services.iot.client.AWSIotTimeoutException;
 import com.amazonaws.services.iot.client.AWSIotTopic;
 import com.amazonaws.services.iot.client.sample.pubSub.payload.EnergyConsumerGenerator;
 import com.amazonaws.services.iot.client.sample.pubSub.payload.EnergyProducerGenerator;
@@ -36,7 +20,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class PublishSubscribeSample {
 
-    private static final String TestTopic = "sdk/test/java";
+    private static final String ProducerTopic = "sdk/test/java";
+    private static final String ConsumerTopic = "sdk/test/Python";
+//    private static final String ProducerTopic = "d12/producer/java";
+//    private static final String ConsumerTopic = "d12/consumer/java";
     private static final AWSIotQos TestTopicQos = AWSIotQos.QOS0;
 
     private static AWSIotMqttClient awsIotClient;
@@ -50,41 +37,6 @@ public class PublishSubscribeSample {
         awsIotClient = client;
     }
 
-    public static class BlockingPublisher implements Runnable {
-        private final AWSIotMqttClient awsIotClient;
-
-        public BlockingPublisher(AWSIotMqttClient awsIotClient) {
-            this.awsIotClient = awsIotClient;
-        }
-
-        @Override
-        public void run() {
-            long counter = 1;
-
-            while (true) {
-                String payload = "hello from blocking publisher - " + (counter++);
-                try {
-                    awsIotClient.publish(TestTopic, mapper.writeValueAsString(consumerGenerator.next()));
-                } catch (AWSIotException | JsonProcessingException e) {
-                    System.out.println(System.currentTimeMillis() + ": publish failed for " + payload);
-                }
-                try {
-                    awsIotClient.publish(TestTopic, mapper.writeValueAsString(producerGenerator.next()));
-                } catch (AWSIotException | JsonProcessingException e) {
-                    System.out.println(System.currentTimeMillis() + ": publish failed for " + payload);
-                }
-                System.out.println(System.currentTimeMillis() + ": >>> " + payload);
-
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    System.out.println(System.currentTimeMillis() + ": BlockingPublisher was interrupted");
-                    return;
-                }
-            }
-        }
-    }
-
     public static class NonBlockingPublisher implements Runnable {
         private final AWSIotMqttClient awsIotClient;
 
@@ -94,14 +46,16 @@ public class PublishSubscribeSample {
 
         @Override
         public void run() {
-            long counter = 1;
-
             while (true) {
-                String payload = "hello from non-blocking publisher - " + (counter++);
-                AWSIotMessage message = new NonBlockingPublishListener(TestTopic, TestTopicQos, payload);
+                String payload = null;
                 try {
+                    payload = mapper.writeValueAsString(consumerGenerator.next());
+                    AWSIotMessage message = new NonBlockingPublishListener(ConsumerTopic, TestTopicQos, payload);
                     awsIotClient.publish(message);
-                } catch (AWSIotException e) {
+                    payload = mapper.writeValueAsString(producerGenerator.next());
+                    message = new NonBlockingPublishListener(ProducerTopic, TestTopicQos, payload);
+                    awsIotClient.publish(message);
+                } catch (AWSIotException | JsonProcessingException e) {
                     System.out.println(System.currentTimeMillis() + ": publish failed for " + payload);
                 }
 
@@ -145,23 +99,19 @@ public class PublishSubscribeSample {
         }
     }
 
-    public static void main(String args[]) throws InterruptedException, AWSIotException, AWSIotTimeoutException {
+    public static void main(String args[]) throws InterruptedException, AWSIotException {
         CommandArguments arguments = CommandArguments.parse(args);
         initClient(arguments);
 
         awsIotClient.connect();
 
-        AWSIotTopic topic = new TestTopicListener(TestTopic, TestTopicQos);
+        AWSIotTopic topic = new TestTopicListener(ProducerTopic, TestTopicQos);
         awsIotClient.subscribe(topic, true);
 
-        Thread blockingPublishThread = new Thread(new BlockingPublisher(awsIotClient));
         Thread nonBlockingPublishThread = new Thread(new NonBlockingPublisher(awsIotClient));
 
-        blockingPublishThread.start();
         nonBlockingPublishThread.start();
 
-        blockingPublishThread.join();
         nonBlockingPublishThread.join();
     }
-
 }
