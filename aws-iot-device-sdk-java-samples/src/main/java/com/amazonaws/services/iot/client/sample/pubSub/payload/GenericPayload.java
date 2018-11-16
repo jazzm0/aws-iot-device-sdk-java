@@ -4,17 +4,10 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Locale;
 
 public class GenericPayload {
-
-    DateTimeFormatter formatter =
-            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL)
-                    .withLocale(Locale.GERMAN)
-                    .withZone(ZoneId.systemDefault());
 
     @JsonProperty
     protected final Instant timeStamp;
@@ -25,6 +18,6 @@ public class GenericPayload {
 
     @JsonGetter
     public String getTimeStamp() {
-        return formatter.format(timeStamp);
+        return OffsetDateTime.ofInstant(timeStamp, ZoneId.systemDefault()).toString();
     }
 }
