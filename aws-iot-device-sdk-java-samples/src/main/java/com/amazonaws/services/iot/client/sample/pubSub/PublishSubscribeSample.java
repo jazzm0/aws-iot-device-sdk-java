@@ -21,9 +21,13 @@ import com.amazonaws.services.iot.client.AWSIotMessage;
 import com.amazonaws.services.iot.client.AWSIotQos;
 import com.amazonaws.services.iot.client.AWSIotTimeoutException;
 import com.amazonaws.services.iot.client.AWSIotTopic;
+import com.amazonaws.services.iot.client.sample.pubSub.payload.EnergyConsumerGenerator;
+import com.amazonaws.services.iot.client.sample.pubSub.payload.EnergyProducerGenerator;
 import com.amazonaws.services.iot.client.sample.sampleUtil.CommandArguments;
 import com.amazonaws.services.iot.client.sample.sampleUtil.SampleUtil;
 import com.amazonaws.services.iot.client.sample.sampleUtil.SampleUtil.KeyStorePasswordPair;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * This is an example that uses {@link AWSIotMqttClient} to subscribe to a topic and
@@ -36,6 +40,11 @@ public class PublishSubscribeSample {
     private static final AWSIotQos TestTopicQos = AWSIotQos.QOS0;
 
     private static AWSIotMqttClient awsIotClient;
+
+    private static final EnergyConsumerGenerator consumerGenerator = new EnergyConsumerGenerator();
+    private static final EnergyProducerGenerator producerGenerator = new EnergyProducerGenerator();
+
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void setClient(AWSIotMqttClient client) {
         awsIotClient = client;
@@ -55,8 +64,13 @@ public class PublishSubscribeSample {
             while (true) {
                 String payload = "hello from blocking publisher - " + (counter++);
                 try {
-                    awsIotClient.publish(TestTopic, payload);
-                } catch (AWSIotException e) {
+                    awsIotClient.publish(TestTopic, mapper.writeValueAsString(consumerGenerator.next()));
+                } catch (AWSIotException | JsonProcessingException e) {
+                    System.out.println(System.currentTimeMillis() + ": publish failed for " + payload);
+                }
+                try {
+                    awsIotClient.publish(TestTopic, mapper.writeValueAsString(producerGenerator.next()));
+                } catch (AWSIotException | JsonProcessingException e) {
                     System.out.println(System.currentTimeMillis() + ": publish failed for " + payload);
                 }
                 System.out.println(System.currentTimeMillis() + ": >>> " + payload);
