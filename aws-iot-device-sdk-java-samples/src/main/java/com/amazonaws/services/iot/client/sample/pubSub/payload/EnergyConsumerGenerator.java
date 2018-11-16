@@ -15,7 +15,7 @@ public class EnergyConsumerGenerator implements Iterator<EnergyConsumer> {
 
     @Override
     public EnergyConsumer next() {
-        Integer maxCapacity = capacities[((int) (Math.random() * 1000)) % 4];
+        Integer maxCapacity = capacities[((int) (Math.random() * 1000)) % capacities.length];
         return new EnergyConsumer(UUID.randomUUID().toString(), ((int) ((Math.random() * 1000)) * maxCapacity * 1000) % maxCapacity, maxCapacity, ((int) ((Math.random() * 1000)) % maxCapacity), Instant.now());
     }
 }
